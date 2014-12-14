@@ -6,6 +6,12 @@ import (
 	"image/color"
 )
 
+// Gets about 1/5 faster if we are certain that At(x, y) never tries
+// to access an invalid position.
+var (
+	kSafeAccess = false
+)
+
 type ImageData struct {
 	Pix []float32
 	// Stride is the Pix stride (in bytes) between vertically adjacent pixels.
@@ -17,7 +23,7 @@ type ImageData struct {
 }
 
 func (p *ImageData) At(x, y int) float32 {
-	if !(image.Point{x, y}.In(p.Rect)) {
+	if kSafeAccess && !(image.Point{x, y}.In(p.Rect)) {
 		return 0
 	}
 	i := p.PixOffset(x, y)
@@ -75,7 +81,9 @@ func (p *ImageData) Intersections(orig *vec2.T, dir *vec2.T) (float32, float32, 
 func NewImageData(r image.Rectangle) *ImageData {
 	w, h := r.Dx(), r.Dy()
 	pix := make([]float32, 1*w*h)
-	bounds := [2]vec2.T{vec2.T{0,0}, vec2.T{float32(w),float32(h)}}
+	// Bounds are chosen as rectangle from [1, 1] to [w, h] to
+	// to simulate matlab arrays.
+	bounds := [2]vec2.T{vec2.T{1,1}, vec2.T{float32(w),float32(h)}}
 	return &ImageData{pix, 1 * w, r, bounds, 0}
 }
 

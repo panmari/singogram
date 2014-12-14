@@ -1,7 +1,6 @@
 package singogram
 
 import (
-	_ "fmt"
 	math "github.com/barnex/fmath"
 	"github.com/cheggaaa/pb"
 	"github.com/ungerik/go3d/vec2"
