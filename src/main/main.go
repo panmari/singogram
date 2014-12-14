@@ -8,9 +8,11 @@ import (
 	"os"
 	"runtime/pprof"
 	"singogram"
+	"runtime"
 )
 
 var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+var maxProcs = flag.Int("procs", runtime.NumCPU(), "set the number of processors to use")
 
 func main() {
 	flag.Parse()
@@ -22,6 +24,8 @@ func main() {
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 	}
+	runtime.GOMAXPROCS(*maxProcs)
+
 	infile, err := os.Open(os.Args[1])
 	if err != nil {
 		// replace this with real error handling
@@ -38,11 +42,7 @@ func main() {
 	}
 
 	// Convert to imagedata.
-	bounds := src.Bounds()
-	w, h := bounds.Max.X, bounds.Max.Y
 	data := singogram.NewImageDataFromImage(src)
-
-	n_pixel := w * h
 
 	FCD_mm := float32(300)
 	DCD_mm := float32(300)
@@ -54,7 +54,8 @@ func main() {
 	detector_size_mm := float32(600)
 
 	dexel_size_mm := detector_size_mm / float32(n_dexel)
-	pixel_size_mm := image_size_mm / float32(n_pixel)
+	bounds := src.Bounds()
+	pixel_size_mm := image_size_mm / float32(bounds.Dx())
 	s := singogram.NewSinegogram(data, FCD_mm, DCD_mm, n_dexel, dexel_size_mm, pixel_size_mm)
 	sinogram := s.Simulation()
 

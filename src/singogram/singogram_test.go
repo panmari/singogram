@@ -105,19 +105,33 @@ func TestLineIntegralCr(t *testing.T) {
 
 	s := NewSinegogram(&data, 0, 0, 0, 0, 0)
 	
-	kAllowedError := float32(0.1)
+	kAllowedError := float32(0.16)
 	
-	source := vec2.T{1.7, 4.5}
-	dexel := vec2.T{1.7, 0.5} 
+	source := vec2.T{4.5, 1.7}
+	dexel := vec2.T{0.5, 1.7} 
 	p := s.line_integral_cr(&source, &dexel)
 	if math.Abs(p - 7.15) > kAllowedError {
 		t.Error(p)
 	}
 	
-	source = vec2.T{3.0, 0.5}
-	dexel = vec2.T{3.0, 4.5} 
+	source = vec2.T{0.5, 3.0}
+	dexel = vec2.T{4.5, 3.0} 
 	p = s.line_integral_cr(&source, &dexel)
 	if math.Abs(p - 4.15) > kAllowedError {
+		t.Error(p)
+	}
+	
+	source = vec2.T{0.5, 4.5}
+	dexel = vec2.T{4.5, 0.5} 
+	p = s.line_integral_cr(&source, &dexel)
+	if math.Abs(p - 4.20) > kAllowedError {
+		t.Error(p)
+	}
+	
+	source = vec2.T{3.5, 4.5}
+	dexel = vec2.T{1.5, 0.5} 
+	p = s.line_integral_cr(&source, &dexel)
+	if math.Abs(p - 9.05) > kAllowedError {
 		t.Error(p)
 	}
 }
@@ -128,9 +142,6 @@ func TestView(t *testing.T) {
     }
 	// Convert to imagedata.
 	data, bounds := generateTestImageData()
-	w, h := bounds.Dx(), bounds.Dy()
-
-	n_pixel := w * h
 
 	FCD_mm := float32(300)
 	DCD_mm := float32(300)
@@ -142,11 +153,29 @@ func TestView(t *testing.T) {
 	detector_size_mm := float32(600)
 
 	dexel_size_mm := detector_size_mm / float32(n_dexel)
-	pixel_size_mm := image_size_mm / float32(n_pixel)
+	pixel_size_mm := image_size_mm / float32(bounds.Dx())
 
 	angle_deg := float32(45)
 	
 	s := NewSinegogram(data, FCD_mm, DCD_mm, n_dexel, dexel_size_mm, pixel_size_mm)
+	
+	tube := s.tube_position(angle_deg)
+	expected_tube := vec2.T{212.13, 212.13}
+	if (expected_tube.Sub(&tube).Length() > 0.01) {
+		t.Error(tube)
+	}
+	
+	dexels := s.detector_positions(angle_deg)
+	expected_first_dexel := vec2.T{-423.2, -1.06}
+	if (expected_first_dexel.Sub(&dexels[0]).Length() > 0.01) {
+		t.Error(dexels[0])
+	}
+	
+	source_cr := s.xy_to_cr(&tube)
+	first_dexel_cr := s.xy_to_cr(&dexels[0])
+	t.Logf("Source cr: %v", source_cr)
+	t.Logf("First dexel cr: %v", first_dexel_cr)
+
 	result := s.view(angle_deg)
 
 	t.Log(result)

@@ -12,6 +12,7 @@ type ImageData struct {
 	Stride int
 	// Rect is the image's bounds.
 	Rect image.Rectangle
+	v_max float32
 }
 
 func (p *ImageData) At(x, y int) float32 {
@@ -22,9 +23,17 @@ func (p *ImageData) At(x, y int) float32 {
 	return p.Pix[i]
 }
 
+func (p *ImageData) AtNormalized(x, y int) float32 {
+	i := p.At(x, y)
+	return i / p.v_max
+}
+
 func (p *ImageData) Set(x, y int, v float32) {
 	if !(image.Point{x, y}.In(p.Rect)) {
 		return
+	}
+	if (v > p.v_max) {
+		p.v_max = v
 	}
 	i := p.PixOffset(x, y)
 	p.Pix[i] = v
@@ -39,7 +48,7 @@ func (p *ImageData) PixOffset(x, y int) int {
 func NewImageData(r image.Rectangle) *ImageData {
 	w, h := r.Dx(), r.Dy()
 	pix := make([]float32, 1*w*h)
-	return &ImageData{pix, 1 * w, r}
+	return &ImageData{pix, 1 * w, r, 0}
 }
 
 
