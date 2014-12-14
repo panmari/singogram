@@ -13,6 +13,7 @@ import (
 
 var (
 	delta_s float32 = 0.05
+	angle_step float32 = 1
 )
 
 type Sinegogram struct {
@@ -80,10 +81,8 @@ func (s *Sinegogram) line_integral_cr(source *vec2.T, dexel *vec2.T) float32 {
 
 // Returns p per centimeter
 func (s *Sinegogram) line_integral_xy(source_xy *vec2.T, dexel_xy *vec2.T) float32 {
-	//log.Print(source_xy, dexel_xy)
 	source_cr := s.xy_to_cr(source_xy)
 	dexel_cr := s.xy_to_cr(dexel_xy)
-	//log.Print(source_xy, dexel_xy)
 	p := s.line_integral_cr(source_cr, dexel_cr)
 	return p * s.pixel_size_mm / 10
 }
@@ -122,7 +121,6 @@ func (s *Sinegogram) SimulationForRange(start_ang, stop_ang, step float32,
 }
 
 func (s *Sinegogram) Simulation() *image.Gray {
-	var angle_step float32 = 1
 	nr_steps := 360 / angle_step
 	line_count := int(nr_steps)
 	bounds := image.Rect(0, 0, s.n_dexel, line_count)

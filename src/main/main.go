@@ -2,13 +2,15 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"image"
 	_ "image/jpeg" // register the JPEG format with the image package
 	"image/png"    // register the PNG format with the image package
 	"os"
+	"runtime"
 	"runtime/pprof"
 	"singogram"
-	"runtime"
+	"time"
 )
 
 var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
@@ -57,7 +59,11 @@ func main() {
 	bounds := src.Bounds()
 	pixel_size_mm := image_size_mm / float32(bounds.Dx())
 	s := singogram.NewSinegogram(data, FCD_mm, DCD_mm, n_dexel, dexel_size_mm, pixel_size_mm)
+
+	start := time.Now()
 	sinogram := s.Simulation()
+	duration := time.Since(start)
+	fmt.Println(duration.String())
 
 	// Encode the grayscale image to the output file
 	outfile, err := os.Create(os.Args[2])
