@@ -61,9 +61,6 @@ func (s *Sinegogram) detector_positions(angle_deg float32) []vec2.T {
 
 // Return p per pixel
 func (s *Sinegogram) line_integral_cr(source *vec2.T, dexel *vec2.T) float32 {
-	// switch c/r coordinate because wat?
-	source[0], source[1] = source[1], source[0]
-	dexel[0], dexel[1] = dexel[1], dexel[0]
 	dir := vec2.Sub(source, dexel)
 	dir_length := dir.Length()
 	dir.Scale(1 / dir_length)
