@@ -74,9 +74,9 @@ func (s *Sinegogram) line_integral_cr(source *vec2.T, dexel *vec2.T) float32 {
 		x := Round(p[0]) - 1
 		y := Round(p[1]) - 1
 		mu_p := s.data.At(x, y)
-		sum_p += mu_p * delta_s
+		sum_p += mu_p
 	}
-	return sum_p
+	return sum_p * delta_s
 }
 
 // Returns p per centimeter
