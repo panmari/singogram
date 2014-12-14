@@ -67,7 +67,8 @@ func (s *Sinegogram) line_integral_cr(source *vec2.T, dexel *vec2.T) float32 {
 	dir.Scale(1 / dir_length)
 
 	sum_p := float32(0.0)
-	for scale := float32(0.0); scale <= dir_length; scale += delta_s {
+	min, max, does_intersect := s.data.Intersections(dexel, &dir)
+	for scale := min; does_intersect && scale <= max; scale += delta_s {
 		p := dir.Scaled(scale)
 		p.Add(dexel)
 		// adaption for matlab vs go arrays -> start with (0 0) instead of (1 1)

@@ -1,7 +1,7 @@
 package singogram
 
-
 import (
+	"github.com/ungerik/go3d/vec2"
 	"image"
 	"image/color"
 )
@@ -11,7 +11,8 @@ type ImageData struct {
 	// Stride is the Pix stride (in bytes) between vertically adjacent pixels.
 	Stride int
 	// Rect is the image's bounds.
-	Rect image.Rectangle
+	Rect  image.Rectangle
+	bounds [2]vec2.T
 	v_max float32
 }
 
@@ -32,7 +33,7 @@ func (p *ImageData) Set(x, y int, v float32) {
 	if !(image.Point{x, y}.In(p.Rect)) {
 		return
 	}
-	if (v > p.v_max) {
+	if v > p.v_max {
 		p.v_max = v
 	}
 	i := p.PixOffset(x, y)
@@ -45,12 +46,38 @@ func (p *ImageData) PixOffset(x, y int) int {
 	return (y-p.Rect.Min.Y)*p.Stride + (x-p.Rect.Min.X)*1
 }
 
+func (p *ImageData) Intersections(orig *vec2.T, dir *vec2.T) (float32, float32, bool) {
+	invdir := vec2.T{1 / dir[0], 1 / dir[1]}
+	sign_x := 0
+	if invdir[0] < 0 {
+		sign_x = 1
+	} 
+	sign_y := 0
+	if invdir[1] < 0 {
+		sign_y = 1
+	} 
+	tmin := (p.bounds[sign_x][0] - orig[0]) * invdir[0]
+	tmax := (p.bounds[1-sign_x][0] - orig[0]) * invdir[0]
+	tymin := (p.bounds[sign_y][1] - orig[1]) * invdir[1]
+	tymax := (p.bounds[1-sign_y][1] - orig[1]) * invdir[1]
+	if tmin > tymax || tymin > tmax {
+		return 0, 0, false
+	}
+	if tymin > tmin {
+		tmin = tymin
+	}
+	if tymax < tmax {
+		tmax = tymax
+	}
+	return tmin, tmax, true
+}
+
 func NewImageData(r image.Rectangle) *ImageData {
 	w, h := r.Dx(), r.Dy()
 	pix := make([]float32, 1*w*h)
-	return &ImageData{pix, 1 * w, r, 0}
+	bounds := [2]vec2.T{vec2.T{0,0}, vec2.T{float32(w),float32(h)}}
+	return &ImageData{pix, 1 * w, r, bounds, 0}
 }
-
 
 func NewImageDataFromImage(src image.Image) *ImageData {
 	bounds := src.Bounds()
