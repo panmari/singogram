@@ -1,0 +1,7 @@
+A little toy application that computes the sinogram of a given image, see http://en.wikipedia.org/wiki/Sinogram.
+
+For testing purposes, you can use the test image in the repository. Usage:
+
+	main [input_image] [output_image.png]
+
+The input may either be in jpg or png format, the output will always be png.
