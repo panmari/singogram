@@ -6,7 +6,7 @@ import (
 	"github.com/ungerik/go3d/vec2"
 	"image"
 	"image/color"
-	_"log"
+	_ "log"
 )
 
 var (
@@ -14,10 +14,10 @@ var (
 )
 
 type Sinegogram struct {
-	data *ImageData
-	FCD_mm float32
-	DCD_mm float32
-	n_dexel int
+	data          *ImageData
+	FCD_mm        float32
+	DCD_mm        float32
+	n_dexel       int
 	dexel_size_mm float32
 	pixel_size_mm float32
 }
@@ -30,10 +30,7 @@ func NewSinegogram(data *ImageData, FCD_mm float32, DCD_mm float32, n_dexel int,
 // Returns a new vector that is equal to the given rotated CLOCKWISE by angle_deg degrees.
 func rotate(v *vec2.T, angle_deg float32) vec2.T {
 	angle_rad := angle_deg * math.Pi / 180
-	// TODO: this could be wrong cause stupid matrix library is stupid
-	x := math.Cos(angle_rad)*v[0] + math.Sin(angle_rad)*v[1]
-	y := -math.Sin(angle_rad)*v[0] + math.Cos(angle_rad)*v[1]
-	return vec2.T{x, y}
+	return v.Rotated(-angle_rad)
 }
 
 func (s *Sinegogram) xy_to_cr(xy *vec2.T) *vec2.T {
@@ -41,9 +38,9 @@ func (s *Sinegogram) xy_to_cr(xy *vec2.T) *vec2.T {
 	trans := vec2.T{float32(s.data.Rect.Dx() + 1), float32(s.data.Rect.Dy() + 1)}
 	trans.Scale(1.0 / 2.0)
 	cr := xy.Scaled(1.0 / s.pixel_size_mm)
-	cr.Add(&trans)
 	// Change sign of y. wat?
 	cr[1] = -cr[1]
+	cr.Add(&trans)
 	return &cr
 }
 
@@ -60,6 +57,7 @@ func (s *Sinegogram) detector_positions(angle_deg float32) []vec2.T {
 	return dexels
 }
 
+// Returns p per centimeter
 func (s *Sinegogram) line_integral_xy(source_xy *vec2.T, dexel_xy *vec2.T) float32 {
 	//log.Print(source_xy, dexel_xy)
 	source_cr := s.xy_to_cr(source_xy)
@@ -69,6 +67,7 @@ func (s *Sinegogram) line_integral_xy(source_xy *vec2.T, dexel_xy *vec2.T) float
 	return p * s.pixel_size_mm / 10
 }
 
+// Return p per pixel
 func (s *Sinegogram) line_integral_cr(source *vec2.T, dexel *vec2.T) float32 {
 	dir := vec2.Sub(source, dexel)
 	dir_length := dir.Length()
@@ -78,7 +77,7 @@ func (s *Sinegogram) line_integral_cr(source *vec2.T, dexel *vec2.T) float32 {
 	for scale := float32(0.0); scale <= dir_length; scale += delta_s {
 		p := dir.Scaled(scale)
 		p.Add(dexel)
-		// adaption for matlab vs go arrays
+		// adaption for matlab vs go arrays -> start with (0 0) instead of (1 1)
 		x := Round(p[0]) - 1
 		y := Round(p[1]) - 1
 		mu_p := s.data.At(x, y)
