@@ -12,6 +12,9 @@ var (
 	kSafeAccess = false
 )
 
+// An image like structure consisting of floats that keeps
+// track of its maximum value (for normalization purposes)
+// over all Set calls.
 type ImageData struct {
 	Pix []float32
 	// Stride is the Pix stride (in bytes) between vertically adjacent pixels.
