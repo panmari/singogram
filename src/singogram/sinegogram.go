@@ -35,7 +35,7 @@ func rotate(v *vec2.T, angle_deg float32) vec2.T {
 	return v.Rotated(-angle_rad)
 }
 
-func (s *Sinegogram) xy_to_cr(xy *vec2.T) *vec2.T {
+func (s *Sinegogram) xy_to_rc(xy *vec2.T) *vec2.T {
 	// TODO: +1 necessary?
 	trans := vec2.T{float32(s.data.Rect.Dx() + 1), float32(s.data.Rect.Dy() + 1)}
 	trans.Scale(1.0 / 2.0)
@@ -43,6 +43,8 @@ func (s *Sinegogram) xy_to_cr(xy *vec2.T) *vec2.T {
 	// Change sign of y. wat?
 	cr[1] = -cr[1]
 	cr.Add(&trans)
+	// Some switcheroo
+	cr[0], cr[1] = cr[1], cr[0]
 	return &cr
 }
 
@@ -60,7 +62,7 @@ func (s *Sinegogram) detector_positions(angle_deg float32) []vec2.T {
 }
 
 // Return p per pixel
-func (s *Sinegogram) line_integral_cr(source *vec2.T, dexel *vec2.T) float32 {
+func (s *Sinegogram) line_integral_rc(source *vec2.T, dexel *vec2.T) float32 {
 	dir := vec2.Sub(source, dexel)
 	dir_length := dir.Length()
 	dir.Scale(1 / dir_length)
@@ -70,10 +72,11 @@ func (s *Sinegogram) line_integral_cr(source *vec2.T, dexel *vec2.T) float32 {
 	for scale := min; does_intersect && scale <= max; scale += delta_s {
 		p := dir.Scaled(scale)
 		p.Add(dexel)
-		// adaption for matlab vs go arrays -> start with (0 0) instead of (1 1)
+		// Adaption for matlab vs go arrays -> start with (0 0) instead of (1 1)
 		x := Round(p[0]) - 1
 		y := Round(p[1]) - 1
-		mu_p := s.data.At(x, y)
+		// Another adaption for matlab array access -> first row index, then column index.
+		mu_p := s.data.At(y, x)
 		sum_p += mu_p
 	}
 	return sum_p * delta_s
@@ -81,9 +84,9 @@ func (s *Sinegogram) line_integral_cr(source *vec2.T, dexel *vec2.T) float32 {
 
 // Returns p per centimeter
 func (s *Sinegogram) line_integral_xy(source_xy *vec2.T, dexel_xy *vec2.T) float32 {
-	source_cr := s.xy_to_cr(source_xy)
-	dexel_cr := s.xy_to_cr(dexel_xy)
-	p := s.line_integral_cr(source_cr, dexel_cr)
+	source_rc := s.xy_to_rc(source_xy)
+	dexel_rc := s.xy_to_rc(dexel_xy)
+	p := s.line_integral_rc(source_rc, dexel_rc)
 	return p * s.pixel_size_mm / 10
 }
 
