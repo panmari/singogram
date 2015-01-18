@@ -99,7 +99,7 @@ func TestDetectorPositions(t *testing.T) {
 }
 */
 
-func TestLineIntegralCr(t *testing.T) {
+func TestLineIntegralRc(t *testing.T) {
 	bounds := image.Rect(0, 0, 4, 4)
 	data := NewImageData(bounds)
 	data.Pix = []float32{0, 0, 0, 0, 0, 5, 2, 0, 0, 1, 3, 0, 0, 0, 0, 0}
@@ -137,6 +137,46 @@ func TestLineIntegralCr(t *testing.T) {
 		t.Error(p)
 	}
 }
+
+func TestLineIntegralRcIntersection(t *testing.T) {
+	bounds := image.Rect(0, 0, 4, 4)
+	data := NewImageData(bounds)
+	data.Pix = []float32{0, 0, 0, 0, 0, 5, 2, 0, 0, 1, 3, 0, 0, 0, 0, 0}
+
+	s := NewSinegogram(data, 0, 0, 0, 0, 0)
+
+	kAllowedError := float32(0.16)
+
+	source := vec2.T{1.7, 4.5}
+	dexel := vec2.T{1.7, 0.5}
+	p := s.line_integral_rc_intersection(&source, &dexel)
+	if math.Abs(p-7.15) > kAllowedError {
+		t.Error(p)
+	}
+
+	source = vec2.T{3.0, 0.5}
+	dexel = vec2.T{3.0, 4.5}
+	p = s.line_integral_rc_intersection(&source, &dexel)
+	if math.Abs(p-4.15) > kAllowedError {
+		t.Error(p)
+	}
+
+	source = vec2.T{4.5, 0.5}
+	dexel = vec2.T{0.5, 4.5}
+	p = s.line_integral_rc_intersection(&source, &dexel)
+	if math.Abs(p-4.20) > kAllowedError {
+		t.Error(p)
+	}
+
+	source = vec2.T{3.5, 4.5}
+	dexel = vec2.T{1.5, 0.5}
+	p = s.line_integral_rc_intersection(&source, &dexel)
+	kAllowedError = float32(0.3)
+	if math.Abs(p-9.05) > kAllowedError {
+		t.Error(p)
+	}
+}
+
 
 func TestView(t *testing.T) {
 	if testing.Short() {

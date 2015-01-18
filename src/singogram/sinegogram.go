@@ -6,8 +6,9 @@ import (
 	"github.com/ungerik/go3d/vec2"
 	"image"
 	"image/color"
-	"sync"
+	"log"
 	"runtime"
+	"sync"
 )
 
 var (
@@ -87,11 +88,64 @@ func (s *Sinegogram) line_integral_rc(source *vec2.T, dexel *vec2.T) float32 {
 	return sum_p * delta_s
 }
 
+// Return p per pixel, using a pixel intersection algorithm.
+func (s *Sinegogram) line_integral_rc_intersection(source *vec2.T, dexel *vec2.T) float32 {
+	dir := vec2.Sub(source, dexel)
+	dir_length := dir.Length()
+	dir.Scale(1 / dir_length)
+
+	sum_p := float32(0.0)
+	min, max, does_intersect := s.data.Intersections(dexel, &dir)
+	// Immediately return if there is no intersection.
+	if !does_intersect {
+		return 0
+	}
+	p_min := dir.Scaled(min)
+	p_min.Add(dexel)
+
+	var dir_gridified [2]int
+	var next_grid_pos [2]int
+	var next_t [2]float32
+	for i := range dir_gridified {
+		if dir[i] != 0 {
+			// sign(dir[i])
+			dir_gridified[i] = int(dir[i] / math.Abs(dir[i]))
+		} else {
+			// zero, if was zero before.
+			dir_gridified[i] = 0
+		}
+		// On grid (round numbers!)
+		next_grid_pos[i] = int(p_min[i]) + dir_gridified[i]
+		next_t[i] = (float32(next_grid_pos[i]) - dexel[i]) / dir[i]
+	}
+
+	lastT := min
+	for lastT < max {
+		var dist_in_pixel float32
+		var axis Axis
+		if next_t[X] < next_t[Y] {
+			axis = X
+		} else {
+			axis = Y
+		}
+		mu_p := s.data.MatlabAt(next_grid_pos[X]+dir_gridified[X],
+			next_grid_pos[Y]+dir_gridified[Y])
+
+		dist_in_pixel = next_t[axis] - lastT
+		lastT = next_t[axis]
+		next_grid_pos[axis] += dir_gridified[axis]
+		next_t[axis] = (float32(next_grid_pos[axis]) - dexel[axis]) / dir[axis]
+		sum_p += mu_p * dist_in_pixel
+	}
+	log.Println(sum_p)
+	return sum_p
+}
+
 // Returns p per centimeter
 func (s *Sinegogram) line_integral_xy(source_xy *vec2.T, dexel_xy *vec2.T) float32 {
 	source_rc := s.xy_to_rc(source_xy)
 	dexel_rc := s.xy_to_rc(dexel_xy)
-	p := s.line_integral_rc(source_rc, dexel_rc)
+	p := s.line_integral_rc_intersection(source_rc, dexel_rc)
 	return p * s.pixel_size_mm / 10
 }
 
@@ -155,6 +209,25 @@ func (s *Sinegogram) Simulation() *image.Gray {
 		}
 	}
 	return sinogram_gray
+}
+
+// Writes the length the ray traveled through the pixel to ImageData.
+func (s *Sinegogram) backproject_cr(source *vec2.T, dexel *vec2.T, c_i float32) *ImageData {
+	dir := vec2.Sub(source, dexel)
+	dir_length := dir.Length()
+	dir.Scale(1 / dir_length)
+	min, max, does_intersect := s.data.Intersections(dexel, &dir)
+
+	correction_image := NewImageData(s.data.Rect)
+	corrected_delta_s := delta_s * c_i
+	for scale := min; does_intersect && scale <= max; scale += delta_s {
+		p := dir.Scaled(scale)
+		p.Add(dexel)
+		x := Round(p[0])
+		y := Round(p[1])
+		correction_image.MatlabAddAt(x, y, corrected_delta_s)
+	}
+	return correction_image
 }
 
 func Round(f float32) int {
