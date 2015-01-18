@@ -104,6 +104,7 @@ func (s *Sinegogram) line_integral_rc_intersection(source *vec2.T, dexel *vec2.T
 	p_min.Add(dexel)
 
 	var dir_gridified [2]int
+	var current_grid_pos [2]int
 	var next_grid_pos [2]int
 	var next_t [2]float32
 	for i := range dir_gridified {
@@ -115,6 +116,7 @@ func (s *Sinegogram) line_integral_rc_intersection(source *vec2.T, dexel *vec2.T
 			dir_gridified[i] = 0
 		}
 		// On grid (round numbers!)
+		current_grid_pos[i] = int(p_min[i])
 		next_grid_pos[i] = int(p_min[i]) + dir_gridified[i]
 		if dir[i] != 0 {
 			next_t[i] = (float32(next_grid_pos[i]) - dexel[i]) / dir[i]
@@ -122,7 +124,7 @@ func (s *Sinegogram) line_integral_rc_intersection(source *vec2.T, dexel *vec2.T
 			next_t[i] = math.MaxFloat32 // Ray parallel => it never crosses 
 		}
 	}
-
+	
 	lastT := min
 	for lastT < max {
 		var dist_in_pixel float32
@@ -132,11 +134,11 @@ func (s *Sinegogram) line_integral_rc_intersection(source *vec2.T, dexel *vec2.T
 		} else {
 			axis = Y
 		}
-		mu_p := s.data.MatlabAt(next_grid_pos[X]+dir_gridified[X],
-			next_grid_pos[Y]+dir_gridified[Y])
+		mu_p := s.data.MatlabAt(current_grid_pos[X], current_grid_pos[Y])
 
 		dist_in_pixel = next_t[axis] - lastT
 		lastT = next_t[axis]
+		current_grid_pos[axis] += dir_gridified[axis]
 		next_grid_pos[axis] += dir_gridified[axis]
 		next_t[axis] = (float32(next_grid_pos[axis]) - dexel[axis]) / dir[axis]
 		sum_p += mu_p * dist_in_pixel
