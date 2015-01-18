@@ -6,7 +6,7 @@ import (
 	"github.com/ungerik/go3d/vec2"
 	"image"
 	"image/color"
-	"log"
+//	"log"
 	"runtime"
 	"sync"
 )
@@ -111,12 +111,16 @@ func (s *Sinegogram) line_integral_rc_intersection(source *vec2.T, dexel *vec2.T
 			// sign(dir[i])
 			dir_gridified[i] = int(dir[i] / math.Abs(dir[i]))
 		} else {
-			// zero, if was zero before.
+			// zero, if was zero before (ray parallel to axis).
 			dir_gridified[i] = 0
 		}
 		// On grid (round numbers!)
 		next_grid_pos[i] = int(p_min[i]) + dir_gridified[i]
-		next_t[i] = (float32(next_grid_pos[i]) - dexel[i]) / dir[i]
+		if dir[i] != 0 {
+			next_t[i] = (float32(next_grid_pos[i]) - dexel[i]) / dir[i]
+		} else {
+			next_t[i] = math.MaxFloat32 // Ray parallel => it never crosses 
+		}
 	}
 
 	lastT := min
@@ -137,7 +141,6 @@ func (s *Sinegogram) line_integral_rc_intersection(source *vec2.T, dexel *vec2.T
 		next_t[axis] = (float32(next_grid_pos[axis]) - dexel[axis]) / dir[axis]
 		sum_p += mu_p * dist_in_pixel
 	}
-	log.Println(sum_p)
 	return sum_p
 }
 
