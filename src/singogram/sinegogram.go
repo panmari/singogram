@@ -11,8 +11,15 @@ import (
 )
 
 var (
-	delta_s float32 = 0.05
+	delta_s    float32 = 0.05
 	angle_step float32 = 1
+)
+
+type Axis int
+
+const (
+	X Axis = iota
+	Y
 )
 
 type Sinegogram struct {
@@ -61,7 +68,7 @@ func (s *Sinegogram) detector_positions(angle_deg float32) []vec2.T {
 	return dexels
 }
 
-// Return p per pixel
+// Return p per pixel, using a ray marching algorithm.
 func (s *Sinegogram) line_integral_rc(source *vec2.T, dexel *vec2.T) float32 {
 	dir := vec2.Sub(source, dexel)
 	dir_length := dir.Length()
@@ -72,11 +79,9 @@ func (s *Sinegogram) line_integral_rc(source *vec2.T, dexel *vec2.T) float32 {
 	for scale := min; does_intersect && scale <= max; scale += delta_s {
 		p := dir.Scaled(scale)
 		p.Add(dexel)
-		// Adaption for matlab vs go arrays -> start with (0 0) instead of (1 1)
-		x := Round(p[0]) - 1
-		y := Round(p[1]) - 1
-		// Another adaption for matlab array access -> first row index, then column index.
-		mu_p := s.data.At(y, x)
+		x := Round(p[0])
+		y := Round(p[1])
+		mu_p := s.data.MatlabAt(x, y)
 		sum_p += mu_p
 	}
 	return sum_p * delta_s
@@ -107,6 +112,7 @@ func (s *Sinegogram) view(angle_deg float32) []float32 {
 	return p
 }
 
+// Does the simulation for a given range of angles (start_ang:step:stop_ang)
 func (s *Sinegogram) SimulationForRange(start_ang, stop_ang, step float32,
 	pb *pb.ProgressBar, wg *sync.WaitGroup, sinogram *ImageData) {
 	defer wg.Done()
@@ -132,11 +138,11 @@ func (s *Sinegogram) Simulation() *image.Gray {
 	var wg sync.WaitGroup
 
 	pb := pb.StartNew(line_count)
-	
+
 	angle_per_task := nr_steps / float32(runtime.GOMAXPROCS(-1))
 	for start_angle := float32(0); start_angle < 360; start_angle += angle_per_task {
 		stop_angle := start_angle + angle_per_task
-		go s.SimulationForRange(start_angle, stop_angle, angle_step, pb, &wg, sinogram) 
+		go s.SimulationForRange(start_angle, stop_angle, angle_step, pb, &wg, sinogram)
 		wg.Add(1)
 	}
 	wg.Wait()
